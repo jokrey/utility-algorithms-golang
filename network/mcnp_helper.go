@@ -8,7 +8,6 @@ import (
 	"math"
 	"errors"
 	"os"
-	"fmt"
 )
 
 /// Simple, High-Level wrapper, that adds some functionality to the most basic byte stream.

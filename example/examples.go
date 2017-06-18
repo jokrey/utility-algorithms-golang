@@ -3,6 +3,7 @@ package main
 import (
 	"utilitly_algorithms/network"
 	"fmt"
+	"os/user"
 )
 
 
@@ -12,6 +13,7 @@ func main() {
 
 func do_mcnp_server_example() {
 	server := network.New_MCNP_Server(4567, func (conn network.MCNP_Connection) {
+		//defer conn.Close()// NOT NECESSARY. THE SERVER DOES THIS FOR US
 		fmt.Println("====Handeling new connection.")
 		cause, err := conn.Read_cause()
 		fmt.Println("Received cause:",cause)
@@ -49,9 +51,18 @@ func do_mcnp_server_example() {
 			fmt.Println("     here it is: ", bytes)
 
 			fmt.Println("OK, now the client got a string for us")
-			fmt.Println("OK, received string")
 			str, err := conn.Read_variable_chunk_utf8()
+			if err != nil { panic(err) }
+			fmt.Println("OK, received string")
 			fmt.Println("     here it is: ", str)
+
+			fmt.Println("OK, now the client got a file for us.")
+			user, err := user.Current()
+			if err != nil { panic(err) }
+			output_path := user.HomeDir + "/Desktop/mcnp_received.txt"
+			err = conn.Read_variable_chunk_into_file(output_path)
+			if err != nil { panic(err) }
+			fmt.Println("OK, wrote file to: ", output_path)
 		}
 
 		fmt.Println("====Succesfully handeled connection.")
@@ -59,6 +70,7 @@ func do_mcnp_server_example() {
 
 	server.RunListenerLoop()
 
+	//go server.RunListenerLoop()
 	//time.Sleep(time.Second)
 	//server.Close()
 }

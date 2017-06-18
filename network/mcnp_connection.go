@@ -75,9 +75,9 @@ func (c MCNP_Connection) Send_variable_chunk_utf8(s string) error {
 func (c MCNP_Connection) Send_variable_chunk_bytearr(bytes []byte) error {
 	return Send_variable_chunk_bytearr(c.connection, bytes);
 }
-//func (c MCNP_Connection) send_variable_chunk_from_stream(long length, InputStream inputStream) error {
-//	return Send_variable_chunk_from_stream(c.connection, length, inputStream);
-//}
+func (c MCNP_Connection) Send_variable_chunk_from_file(filepath string) error {
+	return Send_variable_chunk_from_file(c.connection, filepath)
+}
 func (c MCNP_Connection) Read_variable_chunk_utf8() (string, error) {
 	return Read_variable_chunk_utf8(c.connection);
 }
@@ -86,4 +86,7 @@ func (c MCNP_Connection) Read_variable_chunk_bytearr() ([]byte, error) {
 }
 func (c MCNP_Connection) Read_variable_chunk_in_parts(received_part_callback func([]byte)) error {
 	return Read_variable_chunk_in_parts(c.connection, received_part_callback);
+}
+func (c MCNP_Connection) Read_variable_chunk_into_file(filepath string) error {
+	return Read_variable_chunk_into_file(c.connection, filepath)
 }
