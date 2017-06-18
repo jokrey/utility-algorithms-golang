@@ -1,6 +1,8 @@
 package network
 
-import "net"
+import (
+	"net"
+)
 
 type MCNP_Connection struct {
 	connection net.Conn

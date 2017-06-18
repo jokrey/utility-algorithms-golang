@@ -8,7 +8,8 @@ import (
 
 
 func main() {
-	do_mcnp_server_example()
+	do_mcnp_client_example()
+	//do_mcnp_server_example()
 }
 
 func do_mcnp_server_example() {

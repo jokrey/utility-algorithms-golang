@@ -8,6 +8,7 @@ import (
 	"math"
 	"errors"
 	"os"
+	"fmt"
 )
 
 /// Simple, High-Level wrapper, that adds some functionality to the most basic byte stream.
@@ -35,7 +36,6 @@ import (
 /// |         waitForInt          |      doOperationOnX (x*x)    |
 /// |         receiveInt          |         sendInt (x*x)        |
 /// |                             | waitForChunkOfVariableLength |
-/// | TODO variable example
 /// |      closeConnection        | closeConnection(finishThread)|
 ///
 /// More complex, simultaneous, two way communication (for a example a game server may need), can also be achieved using this protocol.
@@ -150,9 +150,33 @@ import (
 		}
 		return Send_fixed_chunk_bytes(conn, bytes)
 	}
+//TODO UNTESTED
 	func Send_variable_chunk_from_file(conn net.Conn, filepath string) error {
-		//TODO
-		return nil
+		file, err := os.Open(filepath)
+		if err == nil {
+			defer file.Close()
+			fileStats, _ := file.Stat()
+			fileLength := fileStats.Size()
+
+			Start_chunk(conn, fileLength)
+
+			byteCounter := int64(0)
+			for {
+				bufferSize := 1024 * 4
+				buffer := make([]byte, own_util.Min(fileLength-byteCounter, int64(bufferSize)))
+
+				n, err := file.Read(buffer)
+				if n == 0 || err != nil {
+					break
+				}
+				err = Send_fixed_chunk_bytes(conn, buffer[:n])
+				if err != nil {
+					break
+				}
+				byteCounter += int64(n)
+			}
+		}
+		return err
 	}
 
 //READ
@@ -221,7 +245,6 @@ import (
 
 		return err
 	}
-//TODO UNTESTED
 	func Read_variable_chunk_into_file(conn net.Conn, filepath string) error {
 		f, err := os.Create(filepath)
 		defer f.Close()

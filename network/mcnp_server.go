@@ -37,8 +37,9 @@ func (server *MCNP_Server) RunListenerLoop() {
 				fmt.Println("Sorry. There was an attempt at a connection, but it failed")
 			} else {
 				go func () {
-					defer conn.Close()
-					server.handleConnection(New_MCNP_Connection(conn))
+					mcnp_conn := New_MCNP_Connection(conn);
+					defer mcnp_conn.Close()
+					server.handleConnection(mcnp_conn)
 				}() //in new goroutine
 			}
 		}
