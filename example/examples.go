@@ -4,10 +4,13 @@ import (
 	"utilitly_algorithms/network"
 	"fmt"
 	"time"
+	"utilitly_algorithms/stringencoder"
 )
 
 func main() {
-	do_mcnp_server_example()
+	do_tag_system_test()
+
+	//do_mcnp_server_example()
 	//do_mcnp_client_example()
 
 	//self contained example run.
@@ -137,7 +140,7 @@ func do_mcnp_server_example() {
 		}
 
 		fmt.Println("====Succesfully handeled connection.")
-	});
+	})
 
 	err := server.RunListenerLoop()
 	if err != nil { panic(err) }
@@ -146,4 +149,23 @@ func do_mcnp_server_example() {
 	//go server.RunListenerLoop()
 	//time.Sleep(time.Second)
 	//server.Close()
+}
+
+func do_tag_system_test() {
+	//order, values and  don't matter
+	//just keep in mind that tagged values have to be written into the working string, before being read out.
+	var encoder stringencoder.AdvancedStringEncoder = stringencoder.New_AdvancedStringEncoder("")
+	encoder.AddEntry("tag1", "Whatup")
+	encoder.AddEntry_bool("tag2", true)
+	encoder.AddEntry_i64("tag3", 1234123)
+	encodedString := encoder.GetEncodedString()
+	fmt.Println("encodedString: "+encodedString)
+
+	decoder := stringencoder.New_AdvancedStringEncoder(encodedString)
+	entry_tag1, err := decoder.GetEntry("tag1") //error handeling available
+	if err!=nil {panic(err)}
+	fmt.Println("at tag1: "+entry_tag1)
+	fmt.Println("at tag2: ",decoder.DeleteEntry_bool("tag2"))
+	fmt.Println("at tag3: ",decoder.GetEntry_i64("tag3")) //deleting can increase performance over time, because less items will have to iteratet
+	fmt.Println("encodedString: "+decoder.GetEncodedString())
 }
