@@ -6,10 +6,9 @@ import (
 	"time"
 )
 
-
 func main() {
 	do_mcnp_server_example()
-	do_mcnp_client_example()
+	//do_mcnp_client_example()
 
 	//self contained example run.
 	//go do_mcnp_server_example()
