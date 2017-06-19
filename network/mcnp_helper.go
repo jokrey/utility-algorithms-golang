@@ -8,7 +8,7 @@ import (
 	"math"
 	"errors"
 	"os"
-	"fmt"
+	"strconv"
 )
 
 /// Simple, High-Level wrapper, that adds some functionality to the most basic byte stream.
@@ -125,7 +125,7 @@ import (
 		read_buffer := make([]byte, bytesToRead)
 		n, err := conn.Read(read_buffer)
 		if n != int(bytesToRead) {
-			return read_buffer, errors.New("read inexact number of bytes")
+			return read_buffer, errors.New("read inexact number of bytes(read:"+strconv.Itoa(n)+", wanted:"+strconv.Itoa(int(bytesToRead))+")")
 		}
 		return read_buffer, err
 	}

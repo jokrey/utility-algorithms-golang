@@ -22,18 +22,16 @@ func New_MCNP_Server(port int, connectionHandler func(conn MCNP_Connection)) MCN
 ///can very well be run in a different go routine.
 ///Then it is possible to Close it from the outside.
 ///Mostly however it makes sense to run it on the main thread. Since most server only want to handleConnections.
-func (server *MCNP_Server) RunListenerLoop() {
+func (server *MCNP_Server) RunListenerLoop() error {
 	tmp, err := net.Listen("tcp", ":"+strconv.Itoa(server.port))
 	server.port_listener=tmp
 	fmt.Println("RunListenerLoop: ", server.port_listener)
-	if err != nil {
-		fmt.Println("Starting server FAILED.. Sorry")
-	} else {
+	if err == nil {
 		fmt.Println("\n=======! Server Started !=======\n")
-		for server.running { //ever
+		for server.running {
 			fmt.Println("=======! Listening to port", server.port, "for new connection !=======")
-			conn, err := server.port_listener.Accept()
-			if err != nil {
+			conn, listenerr := server.port_listener.Accept()
+			if listenerr != nil {
 				fmt.Println("Sorry. There was an attempt at a connection, but it failed")
 			} else {
 				go func () {
@@ -44,6 +42,7 @@ func (server *MCNP_Server) RunListenerLoop() {
 			}
 		}
 	}
+	return err
 }
 
 func (server MCNP_Server) Close() {
