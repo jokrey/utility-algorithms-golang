@@ -158,6 +158,8 @@ func do_tag_system_test() {
 	encoder.AddEntry("tag1", "Whatup")
 	encoder.AddEntry_bool("tag2", true)
 	encoder.AddEntry_i64("tag3", 1234123)
+	encodable := TestEncodable{123,true}
+	encoder.AddEntry_encodable("tag4", &encodable)
 	encodedString := encoder.GetEncodedString()
 	fmt.Println("encodedString: "+encodedString)
 
@@ -167,5 +169,27 @@ func do_tag_system_test() {
 	fmt.Println("at tag1: "+entry_tag1)
 	fmt.Println("at tag2: ",decoder.DeleteEntry_bool("tag2"))
 	fmt.Println("at tag3: ",decoder.GetEntry_i64("tag3")) //deleting can increase performance over time, because less items will have to iteratet
+	newTestEncodable := TestEncodable{}
+	decoder.NewEncodableFromEntry("tag4", &newTestEncodable)
+	fmt.Println("at tag4: ",newTestEncodable)
 	fmt.Println("encodedString: "+decoder.GetEncodedString())
+
+
+}
+
+//implements EncodableAsString interface
+type TestEncodable struct {
+	test1 int32
+	test2 bool
+}
+func (te TestEncodable) GetEncodedString() string {
+	encoder := stringencoder.New_AdvancedStringEncoder("")
+	encoder.AddEntry_i64("1", int64(te.test1))
+	encoder.AddEntry_bool("2", te.test2)
+	return encoder.GetEncodedString()
+}
+func (dummy *TestEncodable) NewFromEncodedString(encoded string) {
+	decoder := stringencoder.New_AdvancedStringEncoder(encoded)
+	dummy.test1 = int32(decoder.GetEntry_i64("1"))
+	dummy.test2 = decoder.GetEntry_bool("2")
 }

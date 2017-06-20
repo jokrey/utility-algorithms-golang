@@ -97,7 +97,7 @@ func (ase AdvancedStringEncoder) readto_next_entry(current_i int) int {
 
 
 
-////boolean shorts
+///boolean shorts
 func (ase *AdvancedStringEncoder) AddEntry_bool(tag string, b bool) {
 	if b {
 		ase.AddEntry(tag, "t")
@@ -133,14 +133,16 @@ func (ase *AdvancedStringEncoder) DeleteEntry_i64(tag string) int64 {
 	}
 }
 
-////EncodableAsString
-//func (ase AdvancedStringEncoder) <T> void addEntry(tag string, EncodableAsString<T> encodableObject) {
-//addEntry(tag, encodableObject.getEncodedString());
-//}
-//func (ase AdvancedStringEncoder) <T> T getEntry_encodable(tag string, EncodableAsString<T> dummy) {
-//	String entry = getEntry(tag);
-//	return dummy.getFromEncodedString(entry);
-//}
+///EncodableAsString
+func (ase *AdvancedStringEncoder) AddEntry_encodable(tag string, encodableObject EncodableAsString) {
+	ase.AddEntry(tag, encodableObject.GetEncodedString());
+}
+func (ase AdvancedStringEncoder) NewEncodableFromEntry(tag string, dummy EncodableAsString) {
+	entry, err := ase.GetEntry(tag);
+	if err == nil {
+		dummy.NewFromEncodedString(entry);
+	}
+}
 
 
 
