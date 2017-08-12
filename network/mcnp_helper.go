@@ -140,6 +140,9 @@ import (
 	func Start_chunk(conn net.Conn, chunk_size int64) error {
 		return Send_fixed_chunk_int64(conn, chunk_size);//not really semantic wise, just for code minimalism
 	}
+	func Send_chunk_part(conn net.Conn, bytes []byte) error {
+		return Send_fixed_chunk_bytes(conn, bytes);//not really semantic wise, just for code minimalism
+	}
 	func Send_variable_chunk_utf8(conn net.Conn, s string) error {
 		return Send_variable_chunk_bytearr(conn, []byte(s))
 	}

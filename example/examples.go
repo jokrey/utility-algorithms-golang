@@ -8,16 +8,16 @@ import (
 )
 
 func main() {
-	do_tag_system_test()
+	//do_tag_system_test()
 
 	//do_mcnp_server_example()
 	//do_mcnp_client_example()
 
 	//self contained example run.
-	//go do_mcnp_server_example()
-	//time.Sleep(time.Second*10)
-	//do_mcnp_client_example()
-	//for true {}// Without goroutine synchronization for symplicity reasons. Has to be manually shut down.
+	go do_mcnp_server_example()
+	time.Sleep(time.Second*10)
+	do_mcnp_client_example()
+	for true {}// Without goroutine synchronization for symplicity reasons. Has to be manually shut down.
 }
 
 //Error handling should obviously be done differently in reality, but for this example its sufficient
@@ -59,9 +59,9 @@ func do_mcnp_client_example() {
 	bytes2 := []byte{12,68,4,23,3,233,34, 1,2,3}//Add or remove any number of bytes here
 	err = client.Start_chunk(int64(len(bytes1) + len(bytes2)))
 	if err != nil {panic(err)}
-	err = client.Send_fixed_chunk_bytes(bytes1)
+	err = client.Send_chunk_part(bytes1)
 	if err != nil {panic(err)}
-	err = client.Send_fixed_chunk_bytes(bytes2)
+	err = client.Send_chunk_part(bytes2)
 	if err != nil {panic(err)}
 
 	utf8_exmpl := "This is a what, what. This is a test."
@@ -173,8 +173,6 @@ func do_tag_system_test() {
 	decoder.NewEncodableFromEntry("tag4", &newTestEncodable)
 	fmt.Println("at tag4: ",newTestEncodable)
 	fmt.Println("encodedString: "+decoder.GetEncodedString())
-
-
 }
 
 //implements EncodableAsString interface

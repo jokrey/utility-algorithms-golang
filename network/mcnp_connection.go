@@ -71,6 +71,9 @@ func (c MCNP_Connection) Read_fixed_chunk_bytes(bytesToRead int32) ([]byte, erro
 func (c MCNP_Connection) Start_chunk(chunk_size int64) error {
 	return Start_chunk(c.connection, chunk_size);
 }
+func (c MCNP_Connection) Send_chunk_part(bytes []byte) error {
+	return Send_fixed_chunk_bytes(c.connection, bytes);
+}
 func (c MCNP_Connection) Send_variable_chunk_utf8(s string) error {
 	return Send_variable_chunk_utf8(c.connection, s);
 }
