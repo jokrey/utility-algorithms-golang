@@ -15,8 +15,8 @@ type MCNP_Server struct {
 
 //Golang Constructor
 func New_MCNP_Server(port int, connectionHandler func(conn MCNP_Connection)) MCNP_Server {
-	new := MCNP_Server{true, port, connectionHandler, nil}
-	return new
+	newServer := MCNP_Server{true, port, connectionHandler, nil}
+	return newServer
 }
 
 ///can very well be run in a different go routine.
@@ -35,6 +35,18 @@ func (server *MCNP_Server) RunListenerLoop() error {
 				fmt.Println("Sorry. There was an attempt at a connection, but it failed")
 			} else {
 				go func () {
+					//last resort error handling.
+					defer func() {
+						if r := recover(); r != nil {
+							fmt.Println("=========ERROR IN CUSTOM CONNECTION HANDLER========")
+							fmt.Println("ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR")
+							fmt.Println("Child Connection in Server Loop has panicked:\n", r)
+							fmt.Println("Panic was recovered by printing this message and functionality will resume ")
+							fmt.Println("ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR")
+							fmt.Println("===================================================")
+						}
+					}()
+
 					mcnp_conn := New_MCNP_Connection(conn);
 					defer mcnp_conn.Close()
 					server.handleConnection(mcnp_conn)
