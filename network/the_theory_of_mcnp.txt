@@ -43,7 +43,7 @@ An mcnp api has to have/support:
     - send_fixed_chunk_<any_data_type>(<any_data_type>)
     - read_fixed_chunk_<any_data_type>() <any_data_type>
 
-  
+
 
 
   SEMANTIC WRAPPERS:
