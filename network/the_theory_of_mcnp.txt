@@ -1,4 +1,4 @@
-Simple, High-Level wrapper, that adds some functionality to the most basic byte stream.
+Simple, High-Level wrapper, that adds some(VERY little) functionality to the most basic byte stream.
 
 Useful for simple, standardized inter programming language communication. Where build in high level constructs are not available.
 Inter-programming Language entails that both sides will only be able to use the most basic, low level byte-"streams" (or whatever expression of that is available).
