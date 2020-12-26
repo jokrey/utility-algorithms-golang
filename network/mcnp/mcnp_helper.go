@@ -1,12 +1,11 @@
-package network
+package mcnp
 
 import (
-	"net"
-	"own_util"
-	"io"
 	"encoding/binary"
-	"math"
 	"errors"
+	"io"
+	"math"
+	"net"
 	"os"
 	"strconv"
 )
@@ -138,10 +137,10 @@ import (
 //VARIABLE SIZE CHUNKS
 //SEND
 	func Start_chunk(conn net.Conn, chunk_size int64) error {
-		return Send_fixed_chunk_int64(conn, chunk_size);//not really semantic wise, just for code minimalism
+		return Send_fixed_chunk_int64(conn, chunk_size); //not really semantic wise, just for code minimalism
 	}
 	func Send_chunk_part(conn net.Conn, bytes []byte) error {
-		return Send_fixed_chunk_bytes(conn, bytes);//not really semantic wise, just for code minimalism
+		return Send_fixed_chunk_bytes(conn, bytes); //not really semantic wise, just for code minimalism
 	}
 	func Send_variable_chunk_utf8(conn net.Conn, s string) error {
 		return Send_variable_chunk_bytearr(conn, []byte(s))
@@ -166,7 +165,7 @@ import (
 			byteCounter := int64(0)
 			for {
 				bufferSize := 1024 * 4
-				buffer := make([]byte, own_util.Min(fileLength-byteCounter, int64(bufferSize)))
+				buffer := make([]byte, Min(fileLength-byteCounter, int64(bufferSize)))
 
 				n, err := file.Read(buffer)
 				if n == 0 || err != nil {
@@ -199,7 +198,7 @@ import (
 					break
 				}
 				bufferSize := 1024 * 4
-				readTmpBuffer := make([]byte, own_util.Min(incomingChunkSize, int64(bufferSize)))
+				readTmpBuffer := make([]byte, Min(incomingChunkSize, int64(bufferSize)))
 				n, err := conn.Read(readTmpBuffer)
 				if err != nil {
 					if err == io.EOF {//this error is ok
@@ -228,7 +227,7 @@ import (
 					break
 				}
 				bufferSize := 1024 * 4
-				readTmpBuffer := make([]byte, own_util.Min(incomingChunkSize, int64(bufferSize)))
+				readTmpBuffer := make([]byte, Min(incomingChunkSize, int64(bufferSize)))
 				n, err := conn.Read(readTmpBuffer)
 				if err != nil {
 					if err == io.EOF {//this error is ok
@@ -262,7 +261,7 @@ import (
 						break
 					}
 					bufferSize := 1024/// 4
-					readTmpBuffer := make([]byte, own_util.Min(incomingChunkSize-byteCounter, int64(bufferSize)))
+					readTmpBuffer := make([]byte, Min(incomingChunkSize-byteCounter, int64(bufferSize)))
 					n, err := conn.Read(readTmpBuffer)
 					if err != nil {
 						if err == io.EOF {
@@ -280,4 +279,12 @@ import (
 			}
 		}
 		return err
+	}
+	
+	func Min(i1, i2 int64) int64 {
+		if i1 < i2 {
+			return i1
+		} else {
+			return i2
+		}
 	}

@@ -1,9 +1,9 @@
-package network
+package mcnp
 
 import (
 	"net"
-	"time"
 	"strconv"
+	"time"
 )
 
 type MCNP_Client struct {
