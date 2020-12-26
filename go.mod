@@ -1,3 +1,3 @@
 module github.com/jokrey/utility-algorithms-golang
 
-go 0.1
+go 0.2
