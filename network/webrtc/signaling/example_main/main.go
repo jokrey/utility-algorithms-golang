@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	cfg, err := ini.Load("configs/config.ini")
+	cfg, err := ini.Load("network/webrtc/signaling/example_configs/room_ssl.ini")
 	if err != nil {
 		log.Fatalf("Fail to read file: %v", err)
 	}
