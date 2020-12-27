@@ -13,4 +13,5 @@ func main() {
 	}
 	// signaling.StartSimplestSignalingServerWithSSL(cfg)
 	signaling.StartRoomSignalingServerWithSSL(cfg)
+	//signaling.StartRoomSignalingServerUnencrypted(cfg)
 }

@@ -92,6 +92,10 @@ func (c ClientConnection) ListenLoop(
 						for _, connClosed := range connClosedHandlers {
 							connClosed(c, 1008, coc.Error())
 						}
+					} else {
+						for _, connClosed := range connClosedHandlers {
+							connClosed(c, 1000, err.Error())
+						}
 					}
 				}
 
