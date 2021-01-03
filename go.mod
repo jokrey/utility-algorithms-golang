@@ -1,6 +1,6 @@
 module github.com/jokrey/utility-algorithms-golang
 
-go 1.4
+go 1.5
 
 require (
 	github.com/gorilla/websocket v1.4.2
