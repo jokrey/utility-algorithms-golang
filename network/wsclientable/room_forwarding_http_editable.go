@@ -93,6 +93,7 @@ func (p *HTTPEditableRoomController) init() {
 		addOrEditRouteFunc := func(writer http.ResponseWriter, request *http.Request) {
 			initialParams, err := url.ParseQuery(request.URL.RawQuery)
 			if err != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("could not parse url"))
 				return
 			}
@@ -102,10 +103,12 @@ func (p *HTTPEditableRoomController) init() {
 			allowedClientIdsRaw := initialParams.Get("allowed_clients")
 
 			if len(roomID) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(string): id"))
 				return
 			}
 			if len(allowedClientIdsRaw) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(json array string): allowed_clients"))
 				return
 			}
@@ -115,6 +118,7 @@ func (p *HTTPEditableRoomController) init() {
 			var connectedClients map[string]*ClientConnection
 			if previousRoom, exists := p.rooms[roomID]; exists {
 				if isAddRoute {
+					writer.WriteHeader(http.StatusForbidden)
 					_, _ = writer.Write([]byte("room exists cannot add, use edit route to edit"))
 					return
 				}
@@ -151,6 +155,7 @@ func (p *HTTPEditableRoomController) init() {
 		handler.HandleFunc(p.removeRoomRoute, func(writer http.ResponseWriter, request *http.Request) {
 			initialParams, err := url.ParseQuery(request.URL.RawQuery)
 			if err != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("could not parse url"))
 				return
 			}
@@ -158,12 +163,14 @@ func (p *HTTPEditableRoomController) init() {
 			roomID := initialParams.Get("id")
 
 			if len(roomID) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(string): id"))
 				return
 			}
 
 			room := p.get(roomID)
 			if room == nil {
+				writer.WriteHeader(http.StatusNotFound)
 				_, _ = writer.Write([]byte("room cannot be removed since it does not exist"))
 				return
 			}

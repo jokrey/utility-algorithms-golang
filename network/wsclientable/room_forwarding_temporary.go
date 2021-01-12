@@ -102,6 +102,7 @@ func (p *TemporaryRoomController) init() {
 		addOrEditRouteFunc := func(writer http.ResponseWriter, request *http.Request) {
 			initialParams, err := url.ParseQuery(request.URL.RawQuery)
 			if err != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("could not parse url"))
 				return
 			}
@@ -116,18 +117,22 @@ func (p *TemporaryRoomController) init() {
 			validUntilInSecondsFromNow, errU := strconv.ParseInt(validUntilInSecondsFromNowRaw, 10, 64)
 
 			if len(roomID) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(string): id"))
 				return
 			}
 			if len(allowedClientIdsRaw) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(json array string): allowed_clients"))
 				return
 			}
 			if errF != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("field in url params(missing or not a number): valid_from_in_seconds_from_now"))
 				return
 			}
 			if errU != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("field in url params(missing or not a number): valid_until_in_seconds_from_now"))
 				return
 			}
@@ -138,6 +143,7 @@ func (p *TemporaryRoomController) init() {
 			var connectedClients map[string]*ClientConnection
 			if previousRoom, exists := p.rooms[roomID]; exists {
 				if isAddRoute {
+					writer.WriteHeader(http.StatusForbidden)
 					_, _ = writer.Write([]byte("room exists, use edit route to edit"))
 					return
 				}
@@ -184,6 +190,7 @@ func (p *TemporaryRoomController) init() {
 		handler.HandleFunc(p.removeRoomRoute, func(writer http.ResponseWriter, request *http.Request) {
 			initialParams, err := url.ParseQuery(request.URL.RawQuery)
 			if err != nil {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("could not parse url"))
 				return
 			}
@@ -191,12 +198,14 @@ func (p *TemporaryRoomController) init() {
 			roomID := initialParams.Get("id")
 
 			if len(roomID) == 0 {
+				writer.WriteHeader(http.StatusBadRequest)
 				_, _ = writer.Write([]byte("missing field in url params(string): id"))
 				return
 			}
 
 			room := p.get(roomID)
 			if room == nil {
+				writer.WriteHeader(http.StatusNotFound)
 				_, _ = writer.Write([]byte("room cannot be removed since it does not exist"))
 				return
 			}
