@@ -1,9 +1,9 @@
 package stringencoder
 
 import (
+	"errors"
 	"strconv"
 	"strings"
-	"errors"
 )
 
 /// Allows for a simple data to be encoded into a String.

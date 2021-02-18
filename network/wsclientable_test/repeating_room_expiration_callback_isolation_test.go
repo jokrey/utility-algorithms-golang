@@ -1,9 +1,9 @@
 package wsclientable
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"math"
 	"testing"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestRepeatingRoomExpirationCallbackInIsolation(t *testing.T) {

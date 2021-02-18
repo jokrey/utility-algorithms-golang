@@ -1,9 +1,9 @@
 package wsclientable_test
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"testing"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestForwarding(t *testing.T) {

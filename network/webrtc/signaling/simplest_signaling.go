@@ -1,9 +1,9 @@
 package signaling
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"gopkg.in/ini.v1"
 	"log"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 // minimal example config, with all required fields and some comments in example_configs/simplest_unencrypted.ini

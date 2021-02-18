@@ -1,10 +1,10 @@
 package main
 
 import (
-	"utilitly_algorithms/network"
 	"fmt"
+	"github.com/jokrey/utility-algorithms-golang/network/mcnp"
+	"github.com/jokrey/utility-algorithms-golang/stringencoder"
 	"time"
-	"utilitly_algorithms/stringencoder"
 )
 
 func main() {
@@ -17,12 +17,12 @@ func main() {
 	go do_mcnp_server_example()
 	time.Sleep(time.Second*10)
 	do_mcnp_client_example()
-	for true {}// Without goroutine synchronization for symplicity reasons. Has to be manually shut down.
+	for true {}// Without goroutine synchronization for simplicity. Has to be manually shut down.
 }
 
 //Error handling should obviously be done differently in reality, but for this example its sufficient
 func do_mcnp_client_example() {
-	client, err := network.New_MCNP_Client_Connection(
+	client, err := mcnp.New_MCNP_Client_Connection(
 		"localhost",4567, time.Second)
 	if err != nil {panic(err)}
 
@@ -78,7 +78,7 @@ func do_mcnp_client_example() {
 
 //Error handling should obviously be done differently in reality, but for this example its sufficient
 func do_mcnp_server_example() {
-	server := network.New_MCNP_Server(4567, func (conn network.MCNP_Connection) {
+	server := mcnp.New_MCNP_Server(4567, func (conn mcnp.MCNP_Connection) {
 		//defer conn.Close()// NOT NECESSARY. THE SERVER DOES THIS FOR US
 		fmt.Println("====Handeling new connection.")
 		cause, err := conn.Read_cause()

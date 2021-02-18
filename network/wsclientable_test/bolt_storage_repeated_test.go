@@ -1,10 +1,10 @@
 package wsclientable
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"os"
 	"testing"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestBoltDbRepeatingRoom(t *testing.T) {

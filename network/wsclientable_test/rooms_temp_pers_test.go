@@ -2,11 +2,11 @@ package wsclientable_test
 
 import (
 	"fmt"
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"log"
 	"net/http"
 	"testing"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestTemporaryPersistentRooms(t *testing.T) {

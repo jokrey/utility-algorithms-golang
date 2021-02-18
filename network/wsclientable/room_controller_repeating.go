@@ -1,10 +1,10 @@
 package wsclientable
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/synchronization"
 	"log"
 	"math"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/synchronization"
 )
 
 //Idea: See 'room_controller_http_editable.go'

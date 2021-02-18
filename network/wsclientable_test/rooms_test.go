@@ -1,10 +1,10 @@
 package wsclientable_test
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"log"
 	"testing"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestPermanentRooms(t *testing.T) {

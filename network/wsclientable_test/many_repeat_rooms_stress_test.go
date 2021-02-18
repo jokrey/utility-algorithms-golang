@@ -1,11 +1,11 @@
 package wsclientable
 
 import (
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"log"
 	"strconv"
 	"testing"
 	"time"
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 func TestManyRepeatingRooms(t *testing.T) {
