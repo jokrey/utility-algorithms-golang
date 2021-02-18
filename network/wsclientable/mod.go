@@ -15,7 +15,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-//Error if there is a missing field in an http request
+// error returned if there is a missing field in an http request
 type MissingURLFieldError struct {
 	MissingFieldName string
 }

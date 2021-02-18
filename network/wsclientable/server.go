@@ -20,16 +20,23 @@ import (
 //      Base-Format: {"type":"<mType>", "data":"<arbitrary implementation specific data>"}
 //      The concrete server implementation will handle those messages according to the type.
 
+type MessageHandlers map[string]func(mType string, client ClientConnection, message map[string]interface{})
+type ConnOpenedHandlers []func(ClientConnection)
+type ConnClosedHandlers []func(connectionID string, closeCode int, closeReason string)
+type ServerClosedHandlers []func()
+
 type Server struct {
-	raw                  *http.Server
+	raw *http.Server
+
 	authenticate         func(url.Values) (string, error)
-	connOpenedHandlers   []func(ClientConnection)
-	connClosedHandlers   []func(ClientConnection, int, string)
-	serverClosedHandlers []func()
+	connOpenedHandlers   ConnOpenedHandlers
+	connClosedHandlers   ConnClosedHandlers
+	serverClosedHandlers ServerClosedHandlers
 	// any here registered message handlers will be called upon a message of specified type
 	//   remaining json map will contain the parsed data field
 	//   the first argument will be the type again, in case we use the same func
-	messageHandlers map[string]func(string, ClientConnection, map[string]interface{})
+	//   not thread safe - expected that message handlers are added only before server starts
+	messageHandlers MessageHandlers
 }
 
 func NewWSHandlingServer() Server {
@@ -37,14 +44,14 @@ func NewWSHandlingServer() Server {
 		authenticate: func(url.Values) (string, error) {
 			return "", AuthenticationError{Reason: "No authenticator set."}
 		},
-		connOpenedHandlers:   []func(ClientConnection){},
-		connClosedHandlers:   []func(ClientConnection, int, string){},
-		serverClosedHandlers: []func(){},
-		messageHandlers:      make(map[string]func(string, ClientConnection, map[string]interface{})),
+		connOpenedHandlers:   ConnOpenedHandlers{},
+		connClosedHandlers:   ConnClosedHandlers{},
+		serverClosedHandlers: ServerClosedHandlers{},
+		messageHandlers:      make(MessageHandlers),
 	}
 }
 
-func (s *Server) AddMessageHandlers(messageHandlers map[string]func(string, ClientConnection, map[string]interface{})) {
+func (s *Server) AddMessageHandlers(messageHandlers MessageHandlers) {
 	for key, element := range messageHandlers {
 		s.AddMessageHandler(key, element)
 	}
@@ -58,7 +65,8 @@ func (s *Server) AddMessageHandler(mType string, handler func(string, ClientConn
 func (s *Server) AddConnOpenedHandler(handler func(ClientConnection)) {
 	s.connOpenedHandlers = append(s.connOpenedHandlers, handler)
 }
-func (s *Server) AddConnClosedHandler(handler func(ClientConnection, int, string)) {
+
+func (s *Server) AddConnClosedHandler(handler func(connectionID string, closeCode int, closeReason string)) {
 	s.connClosedHandlers = append(s.connClosedHandlers, handler)
 }
 func (s *Server) AddServerClosedHandler(handler func()) {
@@ -68,24 +76,40 @@ func (s *Server) SetAuthenticator(authenticator func(url.Values) (string, error)
 	s.authenticate = authenticator
 }
 func (s *Server) Close() error {
-	for _, v := range s.serverClosedHandlers {
-		v()
+	for _, handler := range s.serverClosedHandlers {
+		handler()
 	}
 	return s.raw.Close()
 }
 
 // never returns without error - also when locally closed.
 //   Connection will only be http. Some clients(browsers) have opted to disallow unencrypted http connections.
-func (s *Server) StartUnencrypted(bindAddress string, bindPort int, httpRoute string) error {
+// additionalRoutes will be added to server handler by handler.HandleFunc (must not contain conflicting patterns)
+func (s *Server) StartUnencrypted(bindAddress string, bindPort int, httpWsUpgradeRoute string, additionalRoutes ...HttpRouteFunc) error {
 	handler := http.NewServeMux()
-	handler.HandleFunc(httpRoute, s.upgradeAndHandleNewClient)
-	server := http.Server{ //nolint:exhaustivestruct
+	for _, routeFunc := range additionalRoutes {
+		handler.HandleFunc(routeFunc.pattern, routeFunc.handler)
+	}
+	handler.HandleFunc(httpWsUpgradeRoute, s.upgradeAndHandleNewClient)
+	server := http.Server{
 		Addr:      bindAddress + ":" + strconv.Itoa(bindPort),
 		Handler:   handler,
 		TLSConfig: nil,
 	}
 	s.raw = &server
 	return server.ListenAndServe()
+}
+
+type HttpRouteFunc struct {
+	pattern string
+	handler func(http.ResponseWriter, *http.Request)
+}
+
+func NewHttpRouteFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) HttpRouteFunc {
+	return HttpRouteFunc{
+		pattern: pattern,
+		handler: handler,
+	}
 }
 
 // never returns without error - also when locally closed.
@@ -155,7 +179,9 @@ func (s *Server) upgradeAndHandleNewClient(writer http.ResponseWriter, request *
 	}
 	name, err := s.authenticate(initialParams)
 	if err != nil {
-		log.Printf("Failed to authenticate %v", err)
+		log.Printf("Auth Err: %v", err)
+		writer.WriteHeader(http.StatusForbidden)
+		_, _ = writer.Write([]byte("Failed to authenticate - because: " + err.Error()))
 		return
 	}
 
@@ -168,6 +194,8 @@ func (s *Server) upgradeAndHandleNewClient(writer http.ResponseWriter, request *
 	conn, err := upgrader.Upgrade(writer, request, responseHeader)
 	if err != nil {
 		log.Println("failed to upgrade to websocket")
+		writer.WriteHeader(http.StatusUpgradeRequired)
+		_, _ = writer.Write([]byte("failed to upgrade to websocket"))
 		return
 	}
 
@@ -177,5 +205,9 @@ func (s *Server) upgradeAndHandleNewClient(writer http.ResponseWriter, request *
 		connOpened(client)
 	}
 
-	client.ListenLoop(s.messageHandlers, s.connClosedHandlers)
+	closeCode, closeReason := client.ListenLoop(s.messageHandlers)
+
+	for _, connClosed := range s.connClosedHandlers {
+		connClosed(client.ID, closeCode, closeReason)
+	}
 }

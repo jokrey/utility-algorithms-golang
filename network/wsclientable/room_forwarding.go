@@ -3,7 +3,6 @@ package wsclientable
 import (
 	"encoding/json"
 	"log"
-	"net/url"
 )
 
 //Idea: Rooms are additional fields in the ws upgrade request header.
@@ -18,170 +17,37 @@ import (
 //         Temporary rooms have a date-timeframe
 //         Temporary rooms can be deleted
 
-type Room struct {
-	ID               string
-	allowedClients   map[string]bool // always true, just used because somehow go does not support search in slice
-	connectedClients map[string]*ClientConnection
-}
-
-type RoomI interface {
-	GetID() string
-	IsAllowed(userID string) bool
-
-	GetConnectedByID(userID string) *ClientConnection
-	AddConnectedIfNotConnected(ClientConnection) bool
-	RemoveConnected(ClientConnection)
-	Close() error
-}
-
-func (r Room) GetConnectedByID(userID string) *ClientConnection {
-	if conn, exists := r.connectedClients[userID]; exists {
-		return conn
-	}
-
-	return nil
-}
-func (r Room) AddConnectedIfNotConnected(client ClientConnection) bool {
-	_, userID := clientConnectionIDStringToRoomIDAndUserID(client.ID)
-	// not thread safe:
-	_, exists := r.connectedClients[userID]
-	if !exists {
-		r.connectedClients[userID] = &client
-		return true
-	}
-	return false
-}
-func (r Room) RemoveConnected(client ClientConnection) {
-	_, userID := clientConnectionIDStringToRoomIDAndUserID(client.ID)
-	delete(r.connectedClients, userID)
-}
-func (r Room) GetID() string {
-	return r.ID
-}
-func (r Room) IsAllowed(userID string) bool {
-	if len(r.allowedClients) == 0 {
-		return true
-	}
-
-	_, ok := r.allowedClients[userID]
-	return ok
-}
-func (r Room) Close() error {
-	var err error
-
-	for _, conn := range r.connectedClients {
-		e := conn.Close()
-		if e != nil {
-			err = e
-		}
-	}
-
-	return err
-}
-
-type RoomController interface {
-	init()
-	exists(roomID string) bool
-	get(roomID string) RoomI
-	close() error
-}
-
-type RoomControllers struct {
-	controllers []RoomController
-}
-
-func BundleControllers(controllers ...RoomController) RoomControllers {
-	return RoomControllers{controllers}
-}
-
-func (r *RoomControllers) init() {
-	for _, v := range r.controllers {
-		v.init()
-	}
-}
-func (r *RoomControllers) exists(roomID string) bool {
-	for _, v := range r.controllers {
-		if v.exists(roomID) {
-			return true
-		}
-	}
-
-	return false
-}
-func (r *RoomControllers) get(roomID string) RoomI {
-	for _, v := range r.controllers {
-		r := v.get(roomID)
-		if r != nil {
-			return r
-		}
-	}
-
-	return nil
-}
-func (r *RoomControllers) close() error {
-	var err error
-	for _, v := range r.controllers {
-		e := v.close()
-		if e != nil {
-			err = e
-		}
-	}
-	return err
-}
-
 // Will add direct relay functionality within rooms (described above)
 func (s *Server) AddRoomForwardingFunctionality(roomControllers RoomControllers, messageTypes ...string) {
 	rooms := roomControllers
-	rooms.init()
+	rooms.Init()
 
-	roomAuthenticator := func(initialParams url.Values) (string, error) {
-		roomID := initialParams.Get("room")
-		if len(roomID) == 0 {
-			return "", MissingURLFieldError{MissingFieldName: "room"}
-		}
-
-		room := rooms.get(roomID)
-		if room == nil {
-			return "", AuthenticationError{Reason: "Could not find room: " + roomID}
-		}
-
-		userID := initialParams.Get("user")
-		if len(userID) == 0 {
-			return "", MissingURLFieldError{MissingFieldName: "user"}
-		}
-
-		if !room.IsAllowed(userID) {
-			return "", AuthenticationError{Reason: "User(" + userID + ") not allowed in room: " + roomID}
-		}
-		convertedClientID := roomIDAndUserIDToClientConnectionIDString(roomID, userID)
-		return convertedClientID, nil
-	}
-
-	s.SetAuthenticator(roomAuthenticator)
+	s.SetAuthenticator(AuthenticateRoomUserPermitAllowed(&rooms))
 
 	s.AddServerClosedHandler(func() {
-		_ = rooms.close()
+		_ = rooms.Close()
 	})
 
-	s.AddConnOpenedHandler(func(client ClientConnection) {
-		roomID, userID := clientConnectionIDStringToRoomIDAndUserID(client.ID)
+	s.AddConnOpenedHandler(func(connection ClientConnection) {
+		roomID, userID, e := ConnectionIDStringToRoomIDAndUserID(connection.ID)
+		if e != nil {
+			log.Printf("New Connection, but invalid connection ID(%v), closing", connection.ID)
+			_ = connection.Close() //when we could not add the connection to any room, we close it
+			return
+		}
 		log.Print("Connect: " + userID + ", in " + roomID)
-
-		if room := rooms.get(roomID); room == nil {
-			log.Print("Can no longer find room " + roomID)
-		} else if !room.AddConnectedIfNotConnected(client) { // this is not thread safe
-			_ = client.Close()
+		if !rooms.NewConnectionForRoom(roomID, connection) {
+			_ = connection.Close() //when we could not add the connection to any room, we close it
 		}
 	})
-	s.AddConnClosedHandler(func(client ClientConnection, code int, reason string) {
-		roomID, userID := clientConnectionIDStringToRoomIDAndUserID(client.ID)
-		log.Print("Disconnect: " + userID + ", in " + roomID)
-
-		if room := rooms.get(roomID); room == nil {
-			log.Print("Can no longer find room " + roomID)
+	s.AddConnClosedHandler(func(connectionID string, code int, reason string) {
+		roomID, userID, e := ConnectionIDStringToRoomIDAndUserID(connectionID)
+		if e != nil {
+			log.Println("Disconnect:", "Invalid ConnectionID(", connectionID, ")", " :::: RAW(can look strange, might be normal): c=", code, ", r=", reason, ")")
 		} else {
-			room.RemoveConnected(client)
+			log.Println("Disconnect:", userID, ", in", roomID, " :::: RAW(can look strange, might be normal): c=", code, ", r=", reason, ")")
 		}
+		rooms.ConnectionInRoomClosed(roomID, userID)
 	})
 
 	directRelayWithinRoom := func(mType string, client ClientConnection, data map[string]interface{}) {
@@ -190,21 +56,23 @@ func (s *Server) AddRoomForwardingFunctionality(roomControllers RoomControllers,
 			return
 		}
 
-		roomID, userID := clientConnectionIDStringToRoomIDAndUserID(client.ID)
+		roomID, userID, _ := ConnectionIDStringToRoomIDAndUserID(client.ID)
 
-		room := rooms.get(roomID)
+		room := rooms.GetRoom(roomID)
 		if room == nil {
 			log.Print("Client's(" + userID + ") room(" + roomID + ") no longer exists - closing client connection")
 			log.Print("This should never happen." +
 				"If a room is closed, all clients should be disconnected and no new clients accepted." +
-				"Getting a request here is either an unlikely race condition or a bug. Or both. Anyway.")
+				"Getting a request here is either an unlikely race condition or a bug. Or both. Anyway, closing now.")
 			_ = client.Close()
 			return
 		}
 
 		to := data["to"].(string)
 		data["from"] = userID
-		peer := room.GetConnectedByID(to)
+
+		peer := rooms.GetConnectionInRoom(roomID, to)
+		//log.Printf("Attempt send from(%v), to(%v), peer(%v), in room(%v)", userID, to, peer, roomID)
 		if peer == nil {
 			err := client.SendTyped("error",
 				"{\"requestType\":\""+mType+"\", \"reason\":\"Peer "+to+" not found in room "+roomID+"\"}")
@@ -226,28 +94,16 @@ func (s *Server) AddRoomForwardingFunctionality(roomControllers RoomControllers,
 	}
 }
 
-// yes, I know the following is ugly, but golang is seriously missing support for generics and this is kinda mostly ok.
-func clientConnectionIDStringToRoomIDAndUserID(clientID string) (string, string) {
-	var clientIDJSON map[string]string
-	if err := json.Unmarshal([]byte(clientID), &clientIDJSON); err != nil {
-		log.Panic("cannot unmarshal - should never occur, err: " + err.Error())
-	}
-	return clientIDJSON["r"], clientIDJSON["u"]
-}
-func roomIDAndUserIDToClientConnectionIDString(roomID, userID string) string {
-	return "{\"r\":\"" + roomID + "\", \"u\":\"" + userID + "\"}"
-}
-
-func createAllowedIdsMapFromJSONArray(allowedClientsJSONArray string) map[string]bool {
-	var allowedClientIds []string
-	err := json.Unmarshal([]byte(allowedClientsJSONArray), &allowedClientIds)
+func UnmarshalJsonArray(jsonArray string) []string {
+	var strs []string
+	err := json.Unmarshal([]byte(jsonArray), &strs)
 	if err != nil {
-		log.Panic("Could not load permanent room allowed Ids (not a list: " + allowedClientsJSONArray + ")")
+		log.Panic("Could not load permanent room allowed Ids (not a list: " + jsonArray + ")")
 	}
-	return createAllowedIdsMapFromSlice(allowedClientIds)
+	return strs
 }
 
-func createAllowedIdsMapFromSlice(allowedClientIds []string) map[string]bool {
+func CreateAllowedIdsMapFromSlice(allowedClientIds []string) map[string]bool {
 	allowedClientIdsMap := make(map[string]bool)
 	for i := 0; i < len(allowedClientIds); i++ {
 		allowedClientIdsMap[allowedClientIds[i]] = true

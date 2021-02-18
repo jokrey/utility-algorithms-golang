@@ -1,17 +1,17 @@
 package signaling
 
 import (
-	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 	"gopkg.in/ini.v1"
 	"log"
+	"github.com/jokrey/utility-algorithms-golang/network/wsclientable"
 )
 
 // minimal example config, with all required fields and some comments in example_configs/simplest_unencrypted.ini
 //  Starts a room signaling server with all possible controllers (config see ini)
 //  Allows direct forwarding to other KNOWN users (on message types offer, answer, candidate)
 func StartSimplestSignalingServerUnencrypted(cfg *ini.File) {
-	bindAddress := cfg.Section("bind").Key("address").String()
-	bindPort, _ := cfg.Section("bind").Key("port").Int()
+	bindAddress := cfg.Section("signaling").Key("address").String()
+	bindPort, _ := cfg.Section("signaling").Key("port").Int()
 	httpRoute := cfg.Section("signaling").Key("http_route").String()
 
 	base := wsclientable.NewWSHandlingServer()
@@ -29,8 +29,8 @@ func StartSimplestSignalingServerUnencrypted(cfg *ini.File) {
 //  Starts a room signaling server with all possible controllers (config see ini)
 //  Allows direct forwarding to other KNOWN users (on message types offer, answer, candidate)
 func StartSimplestSignalingServerWithSSL(cfg *ini.File) {
-	bindAddress := cfg.Section("bind").Key("address").String()
-	bindPort, _ := cfg.Section("bind").Key("port").Int()
+	bindAddress := cfg.Section("signaling").Key("address").String()
+	bindPort, _ := cfg.Section("signaling").Key("port").Int()
 	httpRoute := cfg.Section("signaling").Key("http_route").String()
 
 	base := wsclientable.NewWSHandlingServer()

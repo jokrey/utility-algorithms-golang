@@ -1,6 +1,8 @@
 package wsclientable
 
-import "log"
+import (
+	"log"
+)
 
 // Will add direct relay functionality to the server on the given message types.
 //   for that it will keep a map of currently open connections
@@ -9,21 +11,22 @@ import "log"
 //     the message will be forwarded as is with the original type and the data field exactly as is
 //     only a 'from' field will be added/overridden - this from field is verified.
 func (s *Server) AddDirectForwardingFunctionality(messageTypes ...string) {
-	knownPeers := make(map[string]*ClientConnection)
+	knownPeers := NewConnectionMap()
 
 	s.AddConnOpenedHandler(func(connection ClientConnection) {
 		log.Printf("Connected: %v", connection.ID)
-		// not thread safe:
-		if _, exists := knownPeers[connection.ID]; !exists {
-			knownPeers[connection.ID] = &connection
+
+		wasNewConnection := knownPeers.AddIfNotConnected(connection)
+		if !wasNewConnection {
+			_ = connection.Close()
 		}
 	})
-	s.AddConnClosedHandler(func(connection ClientConnection, code int, text string) {
-		log.Printf("Disconnected: %v", connection.ID)
-		delete(knownPeers, connection.ID)
+	s.AddConnClosedHandler(func(connectionID string, code int, text string) {
+		log.Printf("Disconnected: %v (c=%v, r=%v)", connectionID, code, text)
+		knownPeers.Remove(connectionID)
 	})
 
-	directRelayHandler := func(mType string, client ClientConnection, data map[string]interface{}) {
+	directRelayHandler := func(mType string, connection ClientConnection, data map[string]interface{}) {
 		if to, ok := data["to"]; !ok || to == nil {
 			log.Printf("Missing field for message of type %v", mType)
 
@@ -31,23 +34,23 @@ func (s *Server) AddDirectForwardingFunctionality(messageTypes ...string) {
 		}
 
 		to := data["to"].(string)
-		data["from"] = client.ID
+		data["from"] = connection.ID
 
-		peer, ok := knownPeers[to]
-		if !ok {
-			err := client.SendTyped(
+		peer := knownPeers.GetByID(to)
+		if peer == nil {
+			err := connection.SendTyped(
 				"error", "{\"requestType\":\""+mType+"\", \"reason\":\"Peer "+to+" not found\"}")
 			if err != nil {
-				log.Printf("Error sending to %v\n", client)
+				log.Printf("Error sending to %v\n", connection)
 			}
 
 			return
 		}
 
-		// relay to other client
+		// relay to other connection
 		err := peer.SendMapTyped(mType, data)
 		if err != nil {
-			log.Printf("Error sending to %v", client)
+			log.Printf("Error sending to %v", connection)
 		}
 	}
 
